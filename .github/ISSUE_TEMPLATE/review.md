@@ -2,7 +2,7 @@
 name: Version 2.0.0 review
 about: Give feedback and suggest improvements of version 2.0.0.
 title: "[2.0.0 REVIEW] "
-labels: 'v2.0.0 review'
+labels: ''
 assignees: ''
 
 ---
