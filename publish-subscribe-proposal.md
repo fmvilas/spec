@@ -185,7 +185,7 @@ components:
 
   remotes:
     mosquitto:
-      host: test.mosquitto.org
+      url: mqtt://test.mosquitto.org
       protocol: mqtt
 
   channels:
