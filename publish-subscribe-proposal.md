@@ -163,6 +163,8 @@ So for those of you who were wondering before "**why? don't we have `servers`, `
 
 ## Life is better with examples
 
+### Microservices
+
 Say we have a social network, a very basic one. We want to have a website, a backend WebSocket server that sends and receives events for the UI to update in real-time, a message broker, and some other services subscribed to some topics in the broker.
 
 We'll define everything that's common to some or all the applications in a file called `common.asyncapi.yaml`. Then, each application is going to be defined in its own AsyncAPI file, following the template `{app-name}.asyncapi.yaml`.
@@ -360,6 +362,36 @@ operations:
 ```
 
 </details>
+
+### Public-facing API
+
+Another common use case for AsyncAPI is to provide a definition of a public-facing API. Examples of this are [Slack](https://github.com/asyncapi/spec/blob/master/examples/slack-rtm.yml), [Gitter](https://github.com/asyncapi/spec/blob/master/examples/gitter-streaming.yml), and [Gemini](https://github.com/asyncapi/spec/blob/master/examples/websocket-gemini.yml).
+
+This would work differently than it is now. Instead of defining the server as we do with OpenAPI (and AsyncAPI v2), we'd have to define how a client would look like. For instance:
+
+```yaml
+asyncapi: 3.0.0
+
+remotes:
+  url: wss://api.gemini.com
+  protocol: wss
+
+channels:
+  v1MarketDataSymbol:
+    address: /v1/marketdata/{symbol}
+    parameters:
+      ...
+
+operations:
+  onMarketSymbolUpdate:
+    action: receive
+    channel: v1MarketDataSymbol
+    description: Receive market updates on a given symbol.
+```
+
+Currently, the spec lets you describe the server and infer the client from this description (as with OpenAPI). However, this causes a discrepancy with servers, especially in production systems. For instance, my server may be listening on port 5000 because it's behind a proxy. The client should be sending requests/messages to port 80 and they'll be forwarded by the proxy. If we define our port as 80 in the AsyncAPI file and generate a client, everything is ok but if we generate a server, our code will try to listen in port 80, which is not what we want. This means we can't infer clients from server definitions.
+
+The drawback is that we'd have to define 2 files, one for the server and one for the client but the benefit is that we can be 100% accurate with our intents. Tooling can help auto-generating a client from a server definition.
 
 ## Further expansion
 
