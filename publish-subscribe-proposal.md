@@ -321,7 +321,7 @@ operations:
   onCommentLiked:
     action: receive
     channel: commentLiked
-    description: Sends a notification to the author when one of its comments is liked.
+    description: When a "comment has been liked" message is received, it sends an SMS or push notification to the author.
 ```
 
 </details>
@@ -345,7 +345,7 @@ remotes:
 channels:
   commentLiked:
     $ref: 'common.asyncapi.yaml#/components/channels/commentLiked'
-  updateCommentLikes:
+  commentLikesCountChanged:
     $ref: 'common.asyncapi.yaml#/components/channels/updateCommentLikes'
 
 operations:
@@ -360,3 +360,56 @@ operations:
 ```
 
 </details>
+
+## Further expansion
+
+### Override channel messages with operation-specific messages
+
+The new `operations` object would help us define additional use cases, like those where we define what message is sent or received to/from a channel at the operation level. Let's see an example:
+
+```yaml
+channels:
+  commentLikesCountChanged:
+    message:
+      oneOf:
+        - $ref: 'common.asyncapi.yaml#/components/messages/updateCommentLikes'
+        - $ref: 'common.asyncapi.yaml#/components/messages/updateCommentLikesV2'
+
+operations:
+  sendCommentLikesUpdate:
+    action: send
+    channel: commentLikesCountChanged
+    description: Sends the new count to the broker after it has been updated in the database.
+  sendCommentLikesUpdateV2:
+    action: send
+    channel: commentLikesCountChanged
+    message:
+      $ref: 'common.asyncapi.yaml#/components/messages/updateCommentLikesV2'
+    description: Does the same as above but uses version 2 of the message.
+```
+
+### Adding request/reply support
+
+Adding support for the so-demanded request/reply pattern, would be as easy as adding a new verb and a `reply` keyword. See example:
+
+```yaml
+channels:
+  users:
+    message:
+      oneOf:
+        - $ref: 'common.asyncapi.yaml#/components/messages/createUser'
+        - $ref: 'common.asyncapi.yaml#/components/messages/userCreated'
+
+operations:
+  createUser:
+    action: request
+    channel: users
+    message:
+      $ref: 'common.asyncapi.yaml#/components/messages/createUser'
+    description: Creates a user and expects a response in the same channel.
+    reply:
+      message:
+        $ref: 'common.asyncapi.yaml#/components/messages/userCreated'
+```
+
+> This is just an example. We should also consider dynamic channel names created at runtime and probably other stuff.
