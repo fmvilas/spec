@@ -106,6 +106,7 @@ Aside from the issues mentioned above, there may also be infrastructure configur
       - [Components Object](#componentsObject)
       - [Reference Object](#referenceObject)
       - [Schema Object](#schemaObject)
+      - [AsyncApi Schema object](#asyncApiSchemaObject)
       - [Security Scheme Object](#securitySchemeObject)
       - [OAuth Flows Object](#oauth-flows-object)  
       - [OAuth Flow Object](#oauth-flow-object)
@@ -1071,7 +1072,7 @@ Describes a parameter included in a channel name.
 Field Name | Type | Description
 ---|:---:|---
 <a name="parameterObjectDescription"></a>description | `string` | A verbose explanation of the parameter. [CommonMark syntax](https://spec.commonmark.org/) can be used for rich text representation.
-<a name="parameterObjectSchema"></a>schema | [Schema Object](#schemaObject) \| [Reference Object](#referenceObject) | Definition of the parameter.
+<a name="parameterObjectSchema"></a>schema | [AsyncApi Schema object](#asyncApiSchemaObject) \| [Reference Object](#referenceObject) | Definition of the parameter.
 location | `string` | A [runtime expression](#runtimeExpression) that specifies the location of the parameter value. Even when a definition for the target field exists, it MUST NOT be used to validate this parameter but, instead, the `schema` property MUST be used.
 
 This object MAY be extended with [Specification Extensions](#specificationExtensions).
@@ -1253,10 +1254,9 @@ Describes a message received on a given channel and operation.
 Field Name | Type | Description
 ---|:---:|---
 <a name="messageObjectMessageId"></a>messageId | `string` | Unique string used to identify the message. The id MUST be unique among all messages described in the API. The messageId value is **case-sensitive**. Tools and libraries MAY use the messageId to uniquely identify a message, therefore, it is RECOMMENDED to follow common programming naming conventions.
-<a name="messageObjectHeaders"></a>headers | [Schema Object](#schemaObject) &#124; [Reference Object](#referenceObject) | Schema definition of the application headers. Schema MUST be of type "object". It **MUST NOT** define the protocol headers.
-<a name="messageObjectPayload"></a>payload | `any` | Definition of the message payload. It can be of any type but defaults to [Schema object](#schemaObject). It must match the schema format, including encoding type - e.g Avro should be inlined as either a YAML or JSON object NOT a string to be parsed as YAML or JSON.
+<a name="messageObjectHeaders"></a>headers | [AsyncApi Schema object](#asyncApiSchemaObject) &#124; [Reference Object](#referenceObject) | Schema definition of the application headers. Schema MUST be of type "object". It **MUST NOT** define the protocol headers.
+<a name="messageObjectPayload"></a>payload | [Schema object](#schemaObject) &#124; [Reference Object](#referenceObject) | Definition of the message payload.
 <a name="messageObjectCorrelationId"></a>correlationId | [Correlation ID Object](#correlationIdObject) &#124; [Reference Object](#referenceObject) | Definition of the correlation ID used for message tracing or matching.
-<a name="messageObjectSchemaFormat"></a>schemaFormat | `string` | A string containing the name of the schema format used to define the message payload. If omitted, implementations should parse the payload as a [Schema object](#schemaObject). When the payload is defined using a `$ref` to a remote file, it is RECOMMENDED the schema format includes the file encoding type to allow implementations to parse the file correctly. E.g., adding `+yaml` if content type is `application/vnd.apache.avro` results in `application/vnd.apache.avro+yaml`.<br/><br/>Check out the [supported schema formats table](#messageObjectSchemaFormatTable) for more information. Custom values are allowed but their implementation is OPTIONAL. A custom value MUST NOT refer to one of the schema formats listed in the [table](#messageObjectSchemaFormatTable).
 <a name="messageObjectContentType"></a>contentType | `string` | The content type to use when encoding/decoding a message's payload. The value MUST be a specific media type (e.g. `application/json`). When omitted, the value MUST be the one specified on the [defaultContentType](#defaultContentTypeString) field.
 <a name="messageObjectName"></a>name | `string` | A machine-friendly name for the message.
 <a name="messageObjectTitle"></a>title | `string` | A human-friendly title for the message.
@@ -1269,24 +1269,6 @@ Field Name | Type | Description
 <a name="messageObjectTraits"></a>traits | [[Message Trait Object](#messageTraitObject) &#124; [Reference Object](#referenceObject)] | A list of traits to apply to the message object. Traits MUST be merged into the message object using the [JSON Merge Patch](https://tools.ietf.org/html/rfc7386) algorithm in the same order they are defined here. The resulting object MUST be a valid [Message Object](#messageObject).
 
 This object MAY be extended with [Specification Extensions](#specificationExtensions).
-
-##### <a name="messageObjectSchemaFormatTable"></a>Schema formats table
-
-The following table contains a set of values that every implementation MUST support.
-
-Name | Allowed values | Notes
----|:---:|---
-[AsyncAPI 3.0.0 Schema Object](#schemaObject) | `application/vnd.aai.asyncapi;version=3.0.0`, `application/vnd.aai.asyncapi+json;version=3.0.0`, `application/vnd.aai.asyncapi+yaml;version=3.0.0` | This is the default when a `schemaFormat` is not provided.
-[JSON Schema Draft 07](https://json-schema.org/specification-links.html#draft-7) | `application/schema+json;version=draft-07`, `application/schema+yaml;version=draft-07` | 
-
-The following table contains a set of values that every implementation is RECOMMENDED to support.
-
-Name | Allowed values | Notes
----|:---:|---
-[Avro 1.9.0 schema](https://avro.apache.org/docs/1.9.0/spec.html#schemas) | `application/vnd.apache.avro;version=1.9.0`, `application/vnd.apache.avro+json;version=1.9.0`, `application/vnd.apache.avro+yaml;version=1.9.0` |
-[OpenAPI 3.0.0 Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#schemaObject) | `application/vnd.oai.openapi;version=3.0.0`, `application/vnd.oai.openapi+json;version=3.0.0`, `application/vnd.oai.openapi+yaml;version=3.0.0` | 
-[RAML 1.0 data type](https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/) | `application/raml+yaml;version=1.0` |
-
 
 ##### Message Object Example
 
@@ -1319,11 +1301,13 @@ Name | Allowed values | Notes
   "payload": {
     "type": "object",
     "properties": {
-      "user": {
-        "$ref": "#/components/schemas/userCreate"
-      },
-      "signup": {
-        "$ref": "#/components/schemas/signup"
+      "schema": {
+        "user": {
+          "$ref": "#/components/asyncApiSchemas/userCreate"
+        },
+        "signup": {
+          "$ref": "#/components/asyncApiSchemas/signup"
+        }
       }
     }
   },
@@ -1343,11 +1327,13 @@ Name | Allowed values | Notes
         "applicationInstanceId": "myInstanceId"
       },
       "payload": {
-        "user": {
-          "someUserKey": "someUserValue"
-        },
-        "signup": {
-          "someSignupKey": "someSignupValue"
+        "schema": {
+          "user": {
+            "someUserKey": "someUserValue"
+          },
+          "signup": {
+            "someSignupKey": "someSignupValue"
+          }
         }
       }
     }
@@ -1378,10 +1364,11 @@ headers:
 payload:
   type: object
   properties:
-    user:
-      $ref: "#/components/schemas/userCreate"
-    signup:
-      $ref: "#/components/schemas/signup"
+    schema:
+      user:
+        $ref: "#/components/asyncApiSchemas/userCreate"
+      signup:
+        $ref: "#/components/asyncApiSchemas/signup"
 correlationId:
   description: Default Correlation ID
   location: $message.header#/correlationId
@@ -1394,10 +1381,11 @@ examples:
       correlationId: my-correlation-id
       applicationInstanceId: myInstanceId
     payload:
-      user:
-        someUserKey: someUserValue
-      signup:
-        someSignupKey: someSignupValue
+      schema:
+        user:
+          someUserKey: someUserValue
+        signup:
+          someSignupKey: someSignupValue
 ```
 
 Example using Avro to define the payload:
@@ -1414,9 +1402,11 @@ Example using Avro to define the payload:
     { "name": "signup" },
     { "name": "register" }
   ],
-  "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
   "payload": {
-    "$ref": "path/to/user-create.avsc#/UserCreate"
+    "schema": {
+      "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
+      "$ref": "path/to/user-create.avsc#/UserCreate"  #TODO --> this colides with: https://github.com/asyncapi/spec/issues/216
+    }    
   }
 }
 ```
@@ -1431,9 +1421,11 @@ tags:
   - name: user
   - name: signup
   - name: register
-schemaFormat: 'application/vnd.apache.avro+yaml;version=1.9.0'
 payload:
-  $ref: 'path/to/user-create.avsc/#UserCreate'
+  schema:
+    schemaFormat: 'application/vnd.apache.avro+yaml;version=1.9.0'
+    schema:
+      $ref: 'path/to/user-create.avsc/#UserCreate'
 ```
 
 
@@ -1453,9 +1445,8 @@ If you're looking to apply traits to an operation, see the [Operation Trait Obje
 Field Name | Type | Description
 ---|:---:|---
 <a name="messageTraitObjectMessageId"></a>messageId | `string` | Unique string used to identify the message. The id MUST be unique among all messages described in the API. The messageId value is **case-sensitive**. Tools and libraries MAY use the messageId to uniquely identify a message, therefore, it is RECOMMENDED to follow common programming naming conventions.
-<a name="messageTraitObjectHeaders"></a>headers | [Schema Object](#schemaObject) &#124; [Reference Object](#referenceObject) | Schema definition of the application headers. Schema MUST be of type "object". It **MUST NOT** define the protocol headers.
+<a name="messageTraitObjectHeaders"></a>headers | [AsyncApi Schema object](#asyncApiSchemaObject) &#124; [Reference Object](#referenceObject) | Schema definition of the application headers. Schema MUST be of type "object". It **MUST NOT** define the protocol headers.
 <a name="messageTraitObjectCorrelationId"></a>correlationId | [Correlation ID Object](#correlationIdObject) &#124; [Reference Object](#referenceObject) | Definition of the correlation ID used for message tracing or matching.
-<a name="messageTraitObjectSchemaFormat"></a>schemaFormat | `string` | A string containing the name of the schema format/language used to define the message payload. If omitted, implementations should parse the payload as a [Schema object](#schemaObject).
 <a name="messageTraitObjectContentType"></a>contentType | `string` | The content type to use when encoding/decoding a message's payload. The value MUST be a specific media type (e.g. `application/json`). When omitted, the value MUST be the one specified on the [defaultContentType](#defaultContentTypeString) field.
 <a name="messageTraitObjectName"></a>name | `string` | A machine-friendly name for the message.
 <a name="messageTraitObjectTitle"></a>title | `string` | A human-friendly title for the message.
@@ -1472,13 +1463,11 @@ This object MAY be extended with [Specification Extensions](#specificationExtens
 
 ```json
 {
-  "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
   "contentType": "application/json"
 }
 ```
 
 ```yaml
-schemaFormat: 'application/vnd.apache.avro+yaml;version=1.9.0'
 contentType: application/json
 ```
 
@@ -1508,11 +1497,13 @@ This object MAY be extended with [Specification Extensions](#specificationExtens
     "applicationInstanceId": "myInstanceId"
   },
   "payload": {
-    "user": {
-      "someUserKey": "someUserValue"
-    },
-    "signup": {
-      "someSignupKey": "someSignupValue"
+    "schema": {
+      "user": {
+        "someUserKey": "someUserValue"
+      },
+      "signup": {
+        "someSignupKey": "someSignupValue"
+      }
     }
   }
 }
@@ -1525,10 +1516,11 @@ headers:
   correlationId: my-correlation-id
   applicationInstanceId: myInstanceId
 payload:
-  user:
-    someUserKey: someUserValue
-  signup:
-    someSignupKey: someSignupValue
+  schema:
+    user:
+      someUserKey: someUserValue
+    signup:
+      someSignupKey: someSignupValue
 ```
 
 #### <a name="tagsObject"></a>Tags Object
@@ -1615,12 +1607,12 @@ This object cannot be extended with additional properties and any properties add
 
 ```json
 {
-  "$ref": "#/components/schemas/Pet"
+  "$ref": "#/components/asyncApiSchemas/Pet"
 }
 ```
 
 ```yaml
-  $ref: '#/components/schemas/Pet'
+  $ref: '#/components/asyncApiSchemas/Pet'
 ```
 
 #### <a name="componentsObject"></a>Components Object
@@ -1633,6 +1625,7 @@ All objects defined within the components object will have no effect on the API 
 Field Name | Type | Description
 ---|:---|--- 
 <a name="componentsSchemas"></a> schemas | Map[`string`, [Schema Object](#schemaObject) \| [Reference Object](#referenceObject)] | An object to hold reusable [Schema Objects](#schemaObject).
+<a name="componentsAsyncApiSchemas"></a> asyncApiSchemas | Map[`string`, [AsyncApi Schema object](#asyncApiSchemaObject) \| [Reference Object](#referenceObject)] | An object to hold reusable <a name="componentsAsyncApiSchemas"></a> asyncApiSchemas | Map[`string`, [AsyncApi Schema object](#asyncApiSchemaObject) \| [Reference Object](#referenceObject)] | An object to hold reusable [Schema Objects](#schemaObject).
 <a name="componentsServers"></a> servers | Map[`string`, [Server Object](#serverObject) \| [Reference Object](#referenceObject)] | An object to hold reusable [Server Objects](#serverObject).
 <a name="componentsChannels"></a> channels | Map[`string`, [Channel Object](#channelObject) \| [Reference Object](#referenceObject)] | An object to hold reusable [Channel Objects](#channelObject).
 <a name="componentsOperations"></a> operations | Map[`string`, [Operation Item Object](#operationObject) \| [Reference Object](#referenceObject)] | An object to hold reusable [Operation Item Objects](#operationObject).
@@ -1672,6 +1665,16 @@ my.org.User
 {
   "components": {
     "schemas": {
+      "Category": {
+        "schemaFormat": "application/vnd.aai.asyncapi;version=3.0.0",
+        "schema": "#/components/asyncApiSchemas/Category"
+      },
+      "Tag": {
+        "schemaFormat": "application/vnd.aai.asyncapi;version=3.0.0",
+        "schema": "#/components/asyncApiSchemas/Tag"
+      }
+    },
+    "asyncApiSchemas": {
       "Category": {
         "type": "object",
         "properties": {
@@ -1756,11 +1759,13 @@ my.org.User
         "payload": {
           "type": "object",
           "properties": {
-            "user": {
-              "$ref": "#/components/schemas/userCreate"
-            },
-            "signup": {
-              "$ref": "#/components/schemas/signup"
+            "schema": {
+              "user": {
+                "$ref": "#/components/asyncApiSchemas/userCreate"
+              },
+              "signup": {
+                "$ref": "#/components/asyncApiSchemas/signup"
+              }
             }
           }
         }
@@ -1801,6 +1806,13 @@ my.org.User
 ```yaml
 components:
   schemas:
+    Category:
+      schemaFormat: application/vnd.aai.asyncapi;version=3.0.0
+      schema: #/components/asyncApiSchemas/Category
+    Tag:
+      schemaFormat: application/vnd.aai.asyncapi;version=3.0.0
+      schema: #/components/asyncApiSchemas/Tag
+  asyncApiSchemas:
     Category:
       type: object
       properties:
@@ -1858,10 +1870,11 @@ components:
       payload:
         type: object
         properties:
-          user:
-            $ref: "#/components/schemas/userCreate"
-          signup:
-            $ref: "#/components/schemas/signup"
+          schema:
+            user:
+              $ref: "#/components/asyncApiSchemas/userCreate"
+            signup:
+              $ref: "#/components/asyncApiSchemas/asyncApiSchemas"
   parameters:
     userId:
       description: Id of the user.
@@ -1883,6 +1896,39 @@ components:
 ```
 
 #### <a name="schemaObject"></a>Schema Object
+
+Describes a schema of a message payload.
+
+##### Fixed Fields
+
+Field Name | Type | Description
+---|:---:|---
+<a name="schemaObjectSchemaFormat"></a>schemaFormat | `string` | A string containing the name of the schema format used to define the message payload. If omitted, implementations should parse the payload as a [Schema object](#schemaObject). When the payload is defined using a `$ref` to a remote file, it is RECOMMENDED the schema format includes the file encoding type to allow implementations to parse the file correctly. E.g., adding `+yaml` if content type is `application/vnd.apache.avro` results in `application/vnd.apache.avro+yaml`.<br/><br/>Check out the [supported schema formats table](#schemaObjectSchemaFormatTable) for more information. Custom values are allowed but their implementation is OPTIONAL. A custom value MUST NOT refer to one of the schema formats listed in the [table](#schemaObjectSchemaFormatTable).
+<a name="schemaObjectSchema"></a>schema | `any` | Definition of the message payload. It can be of any type but defaults to [AsyncApi Schema object](#asyncApiSchemaObject). It must match the schema format, including encoding type - e.g Avro should be inlined as either a YAML or JSON object NOT a string to be parsed as YAML or JSON. - Non json based schema e.g. proto and xsd schould be inlined as string
+
+This object MAY be extended with [Specification Extensions](#specificationExtensions).
+
+##### <a name="schemaObjectSchemaFormatTable"></a>Schema formats table
+
+The following table contains a set of values that every implementation MUST support.
+
+Name | Allowed values | Notes
+---|:---:|---
+[AsyncAPI 3.0.0 Schema Object](#asyncApiSchemaObject) | `application/vnd.aai.asyncapi;version=3.0.0`, `application/vnd.aai.asyncapi+json;version=3.0.0`, `application/vnd.aai.asyncapi+yaml;version=3.0.0` | This is the default when a `schemaFormat` is not provided.
+[JSON Schema Draft 07](https://json-schema.org/specification-links.html#draft-7) | `application/schema+json;version=draft-07`, `application/schema+yaml;version=draft-07` | 
+
+The following table contains a set of values that every implementation is RECOMMENDED to support.
+
+Name | Allowed values | Notes
+---|:---:|---
+[Avro 1.9.0 schema](https://avro.apache.org/docs/1.9.0/spec.html#schemas) | `application/vnd.apache.avro;version=1.9.0`, `application/vnd.apache.avro+json;version=1.9.0`, `application/vnd.apache.avro+yaml;version=1.9.0` |
+[OpenAPI 3.0.0 Schema Object](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#schemaObject) | `application/vnd.oai.openapi;version=3.0.0`, `application/vnd.oai.openapi+json;version=3.0.0`, `application/vnd.oai.openapi+yaml;version=3.0.0` | 
+[RAML 1.0 data type](https://github.com/raml-org/raml-spec/blob/master/versions/raml-10/raml-10.md/) | `application/raml+yaml;version=1.0` |
+[Protocol Buffers 2](https://protobuf.dev/programming-guides/proto2/) | `application/vnd.google.protobuf;version=2` |
+[Protocol Buffers 3](https://protobuf.dev/programming-guides/proto3/) | `application/vnd.google.protobuf;version=3` |
+[XML Schema (W3c)](https://www.w3.org/TR/2012/REC-xmlschema11-1-20120405/) | `application/xml;version=1.1` |
+
+#### <a name="asyncApiSchemaObject"></a>AsyncApi Schema Object
 
 The Schema Object allows the definition of input and output data types.
 These types can be objects, but also primitives and arrays. This object is a superset of the [JSON Schema Specification Draft 07](https://json-schema.org/). The empty schema (which allows any instance to validate) MAY be represented by the `boolean` value `true` and a schema which allows no instance to validate MAY be represented by the `boolean` value `false`.
@@ -1941,9 +1987,9 @@ In addition to the JSON Schema fields, the following AsyncAPI vocabulary fields 
 ##### Fixed Fields
 Field Name | Type | Description
 ---|:---:|---
-<a name="schemaObjectDiscriminator"></a>discriminator | `string` | Adds support for polymorphism. The discriminator is the schema property name that is used to differentiate between other schema that inherit this schema. The property name used MUST be defined at this schema and it MUST be in the `required` property list. When used, the value MUST be the name of this schema or any schema that inherits it. See [Composition and Inheritance](#schemaComposition) for more details.
-<a name="schemaObjectExternalDocs"></a>externalDocs | [External Documentation Object](#externalDocumentationObject) \| [Reference Object](#referenceObject) | Additional external documentation for this schema.
-<a name="schemaObjectDeprecated"></a> deprecated | `boolean` | Specifies that a schema is deprecated and SHOULD be transitioned out of usage. Default value is `false`.
+<a name="asyncApiSchemaObjectDiscriminator"></a>discriminator | `string` | Adds support for polymorphism. The discriminator is the schema property name that is used to differentiate between other schema that inherit this schema. The property name used MUST be defined at this schema and it MUST be in the `required` property list. When used, the value MUST be the name of this schema or any schema that inherits it. See [Composition and Inheritance](#schemaComposition) for more details.
+<a name="asyncApiSchemaObjectExternalDocs"></a>externalDocs | [External Documentation Object](#externalDocumentationObject) \| [Reference Object](#referenceObject) | Additional external documentation for this schema.
+<a name="asyncApiSchemaObjectDeprecated"></a> deprecated | `boolean` | Specifies that a schema is deprecated and SHOULD be transitioned out of usage. Default value is `false`.
 
 This object MAY be extended with [Specification Extensions](#specificationExtensions).
 
@@ -1992,7 +2038,7 @@ format: email
       "type": "string"
     },
     "address": {
-      "$ref": "#/components/schemas/Address"
+      "$ref": "#/components/asyncApiSchemas/Address"
     },
     "age": {
       "type": "integer",
@@ -2011,7 +2057,7 @@ properties:
   name:
     type: string
   address:
-    $ref: '#/components/schemas/Address'
+    $ref: '#/components/asyncApiSchemas/Address'
   age:
     type: integer
     format: int32
@@ -2043,7 +2089,7 @@ For a string to model mapping:
 {
   "type": "object",
   "additionalProperties": {
-    "$ref": "#/components/schemas/ComplexModel"
+    "$ref": "#/components/asyncApiSchemas/ComplexModel"
   }
 }
 ```
@@ -2051,7 +2097,7 @@ For a string to model mapping:
 ```yaml
 type: object
 additionalProperties:
-  $ref: '#/components/schemas/ComplexModel'
+  $ref: '#/components/asyncApiSchemas/ComplexModel'
 ```
 
 ###### Model with Example
@@ -2123,7 +2169,7 @@ properties:
 
 ```json
 {
-  "schemas": {
+  "asyncApiSchemas": {
     "ErrorModel": {
       "type": "object",
       "required": [
@@ -2144,7 +2190,7 @@ properties:
     "ExtendedErrorModel": {
       "allOf": [
         {
-          "$ref": "#/components/schemas/ErrorModel"
+          "$ref": "#/components/asyncApiSchemas/ErrorModel"
         },
         {
           "type": "object",
@@ -2164,7 +2210,7 @@ properties:
 ```
 
 ```yaml
-schemas:
+asyncApiSchemas:
   ErrorModel:
     type: object
     required:
@@ -2179,7 +2225,7 @@ schemas:
         maximum: 600
   ExtendedErrorModel:
     allOf:
-    - $ref: '#/components/schemas/ErrorModel'
+    - $ref: '#/components/asyncApiSchemas/ErrorModel'
     - type: object
       required:
       - rootCause
@@ -2192,7 +2238,7 @@ schemas:
 
 ```json
 {
-  "schemas": {
+  "asyncApiSchemas": {
     "Pet": {
       "type": "object",
       "discriminator": "petType",
@@ -2213,7 +2259,7 @@ schemas:
       "description": "A representation of a cat. Note that `Cat` will be used as the discriminator value.",
       "allOf": [
         {
-          "$ref": "#/components/schemas/Pet"
+          "$ref": "#/components/asyncApiSchemas/Pet"
         },
         {
           "type": "object",
@@ -2239,7 +2285,7 @@ schemas:
       "description": "A representation of a dog. Note that `Dog` will be used as the discriminator value.",
       "allOf": [
         {
-          "$ref": "#/components/schemas/Pet"
+          "$ref": "#/components/asyncApiSchemas/Pet"
         },
         {
           "type": "object",
@@ -2261,7 +2307,7 @@ schemas:
       "description": "A representation of an Australian walking stick. Note that `StickBug` will be used as the discriminator value.",
       "allOf": [
         {
-          "$ref": "#/components/schemas/Pet"
+          "$ref": "#/components/asyncApiSchemas/Pet"
         },
         {
           "type": "object",
@@ -2284,7 +2330,7 @@ schemas:
 ```
 
 ```yaml
-schemas:
+asyncApiSchemas:
   Pet:
     type: object
     discriminator: petType
@@ -2301,7 +2347,7 @@ schemas:
   Cat:
     description: A representation of a cat
     allOf:
-    - $ref: '#/components/schemas/Pet'
+    - $ref: '#/components/asyncApiSchemas/Pet'
     - type: object
       properties:
         huntingSkill:
@@ -2319,7 +2365,7 @@ schemas:
   Dog:
     description: A representation of a dog
     allOf:
-    - $ref: '#/components/schemas/Pet'
+    - $ref: '#/components/asyncApiSchemas/Pet'
     - type: object
       properties:
         packSize:
@@ -2335,7 +2381,7 @@ schemas:
   StickInsect:
     description: A representation of an Australian walking stick
     allOf:
-    - $ref: '#/components/schemas/Pet'
+    - $ref: '#/components/asyncApiSchemas/Pet'
     - type: object
       properties:
         petType:
